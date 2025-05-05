@@ -315,7 +315,6 @@ if licz_mpk == "Tak":
 
 
 
-    # ... (cała sekcja MPKK z Twojego kodu pozostaje bez zmian) ...
 
 # --- Kalkulator RRSO ---
 st.header("Kalkulator RRSO", divider="gray")
@@ -326,55 +325,72 @@ licz_rrso = st.radio(
 )
 
 if licz_rrso == "Tak":
-    # Funkcja do obliczeń
-    def oblicz_rrso(wyplaty, splaty):
-        def funkcja(X):
-            return sum(ck / (1 + X)**tk for ck, tk in wyplaty) - sum(dl / (1 + X)**sl for dl, sl in splaty)
-        
-        try:
-            return newton(funkcja, 0.05, maxiter=100) * 100  # Lepsze ustawienia
-        except RuntimeError as e:
-            st.error(f"Błąd obliczeń: {str(e)}")
-            return None
-
-    # Sekcja wypłat
-    with st.expander("🗓️ Harmonogram wypłat kredytu"):
-        m = st.number_input("Liczba transz kredytu:", min_value=1, step=1, key="m_rrso")
-        wyplaty = []
+    st.markdown("### 🔵 Harmonogram wypłat kredytu")
+    wyplaty = []
+    
+    with st.expander("Dodaj wypłaty kredytu"):
+        m = st.number_input("Liczba transz wypłat:", min_value=1, step=1, key="rrso_wyplaty")
         for i in range(int(m)):
             col1, col2 = st.columns(2)
             with col1:
-                ck = st.number_input(f"Kwota transzy {i+1} [zł]", key=f"ck_{i}", format="%.2f")
+                ck = st.number_input(f"Kwota transzy {i+1} [zł]", key=f"rrso_ck_{i}", format="%.2f")
             with col2:
                 tk = st.number_input(f"Okres od dziś do wypłaty {i+1} [lata]", 
-                                   min_value=0.0, step=0.01, key=f"wt_{i}", format="%.4f")
+                                   min_value=0.0, step=0.01, key=f"rrso_tk_{i}", format="%.4f")
             wyplaty.append((ck, tk))
 
-    # Sekcja spłat
-    with st.expander("📅 Harmonogram spłat"):
-        liczba_rat = st.number_input("Liczba rat:", min_value=1, step=1, key="l_rat")
-        rata = st.number_input("Wysokość raty [zł]", min_value=0.0, step=0.01, key="rata")
-        data_pierwszej_raty = st.number_input("Okres do pierwszej raty [lata]:", min_value=0.0, step=0.01, value=1.0/12, key="okres_raty")
+    st.markdown("### 🟡 Koszty dodatkowe")
+    with st.expander("Dodaj koszty"):
+        prowizja = st.number_input("Prowizja (jednorazowa) [zł]", min_value=0.0, step=0.01, key="rrso_prowizja")
+        oplata_przygotowawcza = st.number_input("Opłata przygotowawcza [zł]", min_value=0.0, step=0.01, key="rrso_oplata")
+        koszt_miesieczny = st.number_input("Koszt cykliczny (miesięcznie) [zł]", min_value=0.0, step=0.01, key="rrso_koszt")
 
-        splaty = []
+    st.markdown("### 🟢 Harmonogram spłat")
+    splaty = []
+    
+    with st.expander("Dodaj spłaty"):
+        rata_stala = st.number_input("Wysokość stałej raty [zł]", min_value=0.0, step=0.01, key="rrso_rata")
+        liczba_rat = st.number_input("Liczba stałych rat", min_value=0, step=1, key="rrso_liczba_rat")
+        rata_ostatnia = st.number_input("Rata wyrównawcza [zł]", min_value=0.0, step=0.01, key="rrso_ostatnia")
+
+        # Dodaj koszty natychmiastowe
+        if prowizja > 0:
+            splaty.append((prowizja, 0.0))
+        if oplata_przygotowawcza > 0:
+            splaty.append((oplata_przygotowawcza, 0.0))
+
+        # Generuj raty
         for i in range(int(liczba_rat)):
-            czas = data_pierwszej_raty + (i * (1.0/12))  # Zakładamy raty miesięczne
-            splaty.append((rata, czas))
-
-    if st.button("Oblicz RRSO"):
-        rrso = oblicz_rrso(wyplaty, splaty)
+            czas = (i + 1)/12  # konwersja miesięcy na lata
+            splaty.append((rata_stala + koszt_miesieczny, czas))
         
-        if rrso is not None:
-            st.success(f"**Obliczone RRSO:** {rrso:.2f}%")
+        if rata_ostatnia > 0:
+            czas_ostatniej = (liczba_rat + 1)/12
+            splaty.append((rata_ostatnia + koszt_miesieczny, czas_ostatniej))
+
+    if st.button("Oblicz RRSO", key="rrso_oblicz"):
+        def funkcja_rrso(X):
+            lewa = sum(ck / (1 + X)**tk for ck, tk in wyplaty)
+            prawa = sum(dl / (1 + X)**sl for dl, sl in splaty)
+            return lewa - prawa
+
+        try:
+            rrso = round(newton(funkcja_rrso, 0.05) * 100, 1)
+            st.success(f"**Obliczone RRSO:** {rrso}%")
             
             # Weryfikacja zgodności z umową
-            rrso_umowa = st.number_input("Podaj RRSO z umowy [%]:", min_value=0.0, format="%.2f")
-            
-            if abs(rrso - rrso_umowa) > 0.1:  # Dopuszczalne odchylenie 0.1%
+            zgodnosc = st.radio(
+                "Czy RRSO podane w umowie zgadza się z obliczonym?",
+                ["Tak", "Nie"],
+                key="rrso_zgodnosc"
+            )
+            if zgodnosc == "Nie":
                 naruszenia.append("Rozbieżność między RRSO w umowie a rzeczywistymi obliczeniami")
                 st.error("Niezgodność RRSO stanowi podstawę do zastosowania SKD (art. 4 ust. 5 ustawy o kredycie konsumenckim)")
-        else:
-            st.error("Nie udało się obliczyć RRSO. Sprawdź poprawność danych!")
+        
+        except RuntimeError:
+            st.error("Nie udało się obliczyć RRSO. Sprawdź poprawność danych (m.in. czy suma spłat > suma wypłat).")
+
 
 # --- Stopka CAŁY CZAS NA DOLE ---
 st.markdown(
