@@ -312,7 +312,7 @@ if licz_mpk == "Tak":
         else:
             st.info("MPKK według wzoru mieści się w ustawowym limicie.")
       
-st.divider()
+        st.divider()
         przekroczone = st.radio(
             "Czy suma Twoich rzeczywistych pozaodsetkowych kosztów kredytu przekracza obliczony limit MPKK?",
             ["Nie", "Tak"],
