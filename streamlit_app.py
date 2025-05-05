@@ -312,7 +312,20 @@ if licz_mpk == "Tak":
         else:
             st.info("MPKK według wzoru mieści się w ustawowym limicie.")
       
-
+if st.session_state.get('MPKK'):
+    przekroczone = st.radio(
+        "Czy suma Twoich rzeczywistych pozaodsetkowych kosztów kredytu (prowizje, ubezpieczenia, opłaty dodatkowe) przekracza obliczony limit MPKK?",
+        ["Nie", "Tak"],
+        key="rzeczywiste_koszty"
+    )
+    if przekroczone == "Tak":
+        naruszenia.append("Przekroczenie limitu MPKK")
+        st.error("""
+        ❗ Rzeczywiste koszty przekraczają maksymalny dopuszczalny limit MPKK - stanowi to podstawę do zastosowania sankcji SKD 
+        zgodnie z art. 45 ust. 1 ustawy o kredycie konsumenckim.
+        """)
+    elif przekroczone == "Nie":
+        st.success("Twoje rzeczywiste pozaodsetkowe koszty kredytu mieszczą się w ustawowym limicie.")
 
 
 
@@ -386,8 +399,10 @@ if licz_rrso == "Tak":
             )
             if zgodnosc == "Nie":
                 naruszenia.append("Rozbieżność między RRSO w umowie a rzeczywistymi obliczeniami")
-                st.error("Niezgodność RRSO stanowi podstawę do zastosowania SKD (art. 4 ust. 5 ustawy o kredycie konsumenckim)")
-        
+                st.error("""
+    ❗ Różnica między RRSO z umowy a obliczonym RRSO może stanowić podstawę do zastosowania sankcji kredytu darmowego (SKD) 
+    na podstawie art. 4 ust. 5 ustawy o kredycie konsumenckim.
+    """)
         except RuntimeError:
             st.error("Nie udało się obliczyć RRSO. Sprawdź poprawność danych (m.in. czy suma spłat > suma wypłat).")
 
