@@ -180,6 +180,7 @@ if 'MPKK' not in st.session_state:
     st.session_state.MPKK = None
 
 if licz_mpk == "Tak":
+    pass
     # ... (cała sekcja MPKK z Twojego kodu pozostaje bez zmian) ...
 
 # --- Kalkulator RRSO ---
