@@ -312,15 +312,19 @@ if licz_mpk == "Tak":
         else:
             st.info("MPKK według wzoru mieści się w ustawowym limicie.")
       
-        st.divider()
-        przekroczone = st.radio(
-            "Czy suma Twoich rzeczywistych pozaodsetkowych kosztów kredytu przekracza obliczony limit MPKK?",
-            ["Nie", "Tak"],
-            key="rzeczywiste_koszty"
-        )
-        if przekroczone == "Tak":
-            naruszenia.append("Przekroczenie limitu MPKK (art. 5 ust. 1 ustawy o kredycie konsumenckim)")
-            st.error("Przekroczenie limitu MPKK stanowi podstawę do zastosowania sankcji SKD")
+        # --- Po obliczeniu MPKK: pytanie o rzeczywiste koszty ---
+        if st.session_state.get("MPKK"):
+            st.divider()
+            przekroczone = st.radio(
+                "Czy suma Twoich pozaodsetkowych kosztów kredytu (prowizje, ubezpieczenia, opłaty dodatkowe) przekracza obliczony limit MPKK?",
+                ["Nie", "Tak"],
+                key="rzeczywiste_koszty"
+            )
+            if przekroczone == "Tak":
+                st.warning("⚠️ Przekroczenie limitu MPKK może stanowić podstawę do zastosowania sankcji kredytu darmowego (SKD) zgodnie z art. 45 ust. 1 ustawy o kredycie konsumenckim.")
+            elif przekroczone == "Nie":
+                st.success("Twoje rzeczywiste pozaodsetkowe koszty kredytu mieszczą się w ustawowym limicie.")
+
 
 
 
@@ -385,19 +389,14 @@ if licz_rrso == "Tak":
         try:
             rrso = round(newton(funkcja_rrso, 0.05) * 100, 1)
             st.success(f"**Obliczone RRSO:** {rrso}%")
-            
-            # Weryfikacja zgodności z umową
             zgodnosc = st.radio(
-                "Czy RRSO podane w umowie zgadza się z obliczonym?",
-                ["Tak", "Nie"],
-                key="rrso_zgodnosc"
-            )
+            "Czy RRSO podane w umowie zgadza się z obliczonym?",
+            ["Tak", "Nie"],
+            key="rrso_zgodnosc"
+        )
             if zgodnosc == "Nie":
-                naruszenia.append("Rozbieżność między RRSO w umowie a rzeczywistymi obliczeniami")
-                st.error("""
-    ❗ Różnica między RRSO z umowy a obliczonym RRSO może stanowić podstawę do zastosowania sankcji kredytu darmowego (SKD) 
-    na podstawie art. 4 ust. 5 ustawy o kredycie konsumenckim.
-    """)
+                st.warning("⚠️ Różnica między RRSO z umowy a obliczonym RRSO może stanowić podstawę do zastosowania sankcji kredytu darmowego (SKD) na podstawie art. 4 ust. 5 ustawy o kredycie konsumenckim.")
+    
         except RuntimeError:
             st.error("Nie udało się obliczyć RRSO. Sprawdź poprawność danych (m.in. czy suma spłat > suma wypłat).")
 
