@@ -347,36 +347,36 @@ if 'rrso' not in st.session_state:
 
 if licz_rrso == "Tak":
     with st.expander("⚙️ Opcjonalnie: Ustawienia liczby dni w roku i miesiącu (dla RRSO)"):
-    st.markdown("""
-    **Uwaga!** Ustaw te wartości **tylko jeśli Twoja umowa wyraźnie je określa** (np. rok = 360 dni, miesiąc = 30 dni).
-    """)
-    col1, col2 = st.columns(2)
-    with col1:
-        rrso_days_in_year = st.number_input(
-            "Liczba dni w roku (RRSO):",
-            min_value=1.0,
-            max_value=400.0,
-            value=365.0,
-            step=0.001,
-            format="%.3f",
-            key="rrso_days_in_year",
-            help="Standardowo: 365 dni (lub np. 360 w bankowości)"
-        )
-    with col2:
-        rrso_days_in_month = st.number_input(
-            "Liczba dni w miesiącu (RRSO):",
-            min_value=1.0,
-            max_value=31.0,
-            value=30.417,
-            step=0.001,
-            format="%.3f",
-            key="rrso_days_in_month",
-            help="Standardowo: 30.417 (czyli 365/12)"
-        )
-    if rrso_days_in_year not in [360.0, 365.0, 365.242, 365.25]:
-        st.warning(f"⚠️ Nietypowa wartość dni w roku: {rrso_days_in_year:.3f}. Sprawdź czy umowa to precyzuje!")
-    if rrso_days_in_month not in [30.0, 30.417, 30.42, 30.44]:
-        st.warning(f"⚠️ Nietypowa wartość dni w miesiącu: {rrso_days_in_month:.3f}. Sprawdź zapisy umowne!")
+        st.markdown("""
+        **Uwaga!** Ustaw te wartości **tylko jeśli Twoja umowa wyraźnie je określa** (np. rok = 360 dni, miesiąc = 30 dni).
+        """)
+        col1, col2 = st.columns(2)
+        with col1:
+            rrso_days_in_year = st.number_input(
+                "Liczba dni w roku (RRSO):",
+                min_value=1.0,
+                max_value=400.0,
+                value=365.0,
+                step=0.001,
+                format="%.3f",
+                key="rrso_days_in_year",
+                help="Standardowo: 365 dni (lub np. 360 w bankowości)"
+            )
+        with col2:
+            rrso_days_in_month = st.number_input(
+                "Liczba dni w miesiącu (RRSO):",
+                min_value=1.0,
+                max_value=31.0,
+                value=30.417,
+                step=0.001,
+                format="%.3f",
+                key="rrso_days_in_month",
+                help="Standardowo: 30.417 (czyli 365/12)"
+            )
+        if rrso_days_in_year not in [360.0, 365.0, 365.242, 365.25]:
+            st.warning(f"⚠️ Nietypowa wartość dni w roku: {rrso_days_in_year:.3f}. Sprawdź czy umowa to precyzuje!")
+        if rrso_days_in_month not in [30.0, 30.417, 30.42, 30.44]:
+            st.warning(f"⚠️ Nietypowa wartość dni w miesiącu: {rrso_days_in_month:.3f}. Sprawdź zapisy umowne!")
 
     st.markdown("### 🔵 Harmonogram wypłat kredytu")
     wyplaty = []
