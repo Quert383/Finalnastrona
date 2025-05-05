@@ -10,7 +10,7 @@ st.set_page_config(
 )
 
 # Logo i nagłówek
-with open("logo_bcp.png", "rb") as f:
+with open("Salutaris_logo.png", "rb") as f:
     logo_data = f.read()
 encoded_logo = base64.b64encode(logo_data).decode()
 
