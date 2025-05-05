@@ -180,8 +180,7 @@ if 'MPKK' not in st.session_state:
     st.session_state.MPKK = None
 
 if licz_mpk == "Tak":
-   # --- 3. Kwota kredytu
-st.header("Podaj kwotę kredytu", divider="gray")
+    st.header("Podaj kwotę kredytu", divider="gray")
 st.markdown(
     """
     Kwota kredytu musi mieścić się w przedziale **od 0 do 255&nbsp;550 złotych**,
@@ -315,6 +314,8 @@ if st.button("Oblicz MPKK"):
         )
     else:
         st.info("MPKK według wzoru mieści się w ustawowym limicie.")
+  
+
 
 
     # ... (cała sekcja MPKK z Twojego kodu pozostaje bez zmian) ...
