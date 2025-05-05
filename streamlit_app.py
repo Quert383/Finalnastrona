@@ -176,7 +176,10 @@ licz_mpk = st.radio(
     key="licz_mpk"
 )
 
-if licz_mpk == "Tak":  
+if 'MPKK' not in st.session_state:
+    st.session_state.MPKK = None
+
+if licz_mpk == "Tak":
     st.header("Podaj kwotę kredytu", divider="gray")
     st.markdown(
         """
@@ -186,7 +189,7 @@ if licz_mpk == "Tak":
         """, unsafe_allow_html=True
     )
     kwota_str = st.text_input("Kwota kredytu:", value="", key="kwota")
-    
+
     def parse_amount(amount_str):
         amount_str = amount_str.replace(" ", "")
         if "," in amount_str and "." in amount_str:
@@ -200,28 +203,27 @@ if licz_mpk == "Tak":
             return value
         except ValueError:
             return None
-    
+
     def format_pln(amount):
         return f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    
+
     K = parse_amount(kwota_str) if kwota_str else None
-    
+
     if kwota_str:
         if K is None or K < 0 or (K > 255550 and kredyt != "🛠️ Kredyt niezabezpieczony hipoteką przeznaczony na remont nieruchomości"):
             st.error("Podaj poprawną kwotę kredytu zgodną z limitem.")
             st.stop()
-    
+
     st.divider()
-    
-    # --- 4. Okres spłaty
+
     st.header("Podaj okres spłaty", divider="gray")
     st.info(
         "Rekomendacja: dla największej precyzji zalecamy wpisywanie okresu spłaty w dniach. "
         "Liczba dni w poszczególnych miesiącach różni się, dlatego podanie okresu w miesiącach może powodować niewielkie rozbieżności w wyniku."
     )
-    
+
     input_type = st.radio("Wybierz sposób podania okresu spłaty:", ("W miesiącach", "W dniach"), key="okres")
-    
+
     with st.expander("⚙️ Opcjonalnie: Ustawienia liczby dni w roku i miesiącu"):
         st.markdown(
             """
@@ -234,50 +236,46 @@ if licz_mpk == "Tak":
             days_in_year = st.number_input("Liczba dni w roku:", min_value=1, max_value=400, value=365, step=1, key="dni_rok")
         with col2:
             days_in_month = st.number_input("Liczba dni w miesiącu:", min_value=1.0, max_value=31.0, value=30.42, step=0.01, key="dni_miesiac")
-    
-    # Walidacja wartości roku i miesiąca
+
     if days_in_year < 300 or days_in_year > 400:
         st.warning(f"⚠️ Wybrałeś nietypową liczbę dni w roku: {days_in_year} dni. Standardowo przyjmuje się 365.")
-    
+
     if days_in_month < 25 or days_in_month > 31:
         st.warning(f"⚠️ Wybrałeś nietypową liczbę dni w miesiącu: {days_in_month:.2f} dni. Standardowo przyjmuje się 30,42.")
-    
-    # Wyliczanie okresu n
+
     if input_type == "W miesiącach":
         months = st.number_input("Okres spłaty (w miesiącach):", min_value=1, step=1, key="miesiace")
         n = months * days_in_month
     else:
         n = st.number_input("Okres spłaty (w dniach):", min_value=1, step=1, key="dni")
-    
-    # Rok do wzoru
+
     R = days_in_year
-    
+
     st.divider()
-    
-    # --- 5. Wzór i wyliczenia
+
     st.header("Wzór MPKK", divider="gray")
     if choice == "1":
         st.info("**Wybrano wzór:**\nMPKK = (K × 25%) + (K × n/R × 30%)\nMaksymalna wysokość MPKK = całkowita kwota kredytu")
         limit_info = "maksymalna wysokość MPKK = całkowita kwota kredytu"
     elif choice == "2":
         st.info("""**Wybrano wzór:**  
-    - Dla okresu **krótszego niż 30 dni**: MPKK = K × 5%  
-    - Dla okresu **równego lub dłuższego niż 30 dni**: MPKK = (K × 15%) + (K × n/R × 6%)  
-    Maksymalna wysokość MPKK = 45% całkowitej kwoty kredytu""")
+- Dla okresu **krótszego niż 30 dni**: MPKK = K × 5%  
+- Dla okresu **równego lub dłuższego niż 30 dni**: MPKK = (K × 15%) + (K × n/R × 6%)  
+Maksymalna wysokość MPKK = 45% całkowitej kwoty kredytu""")
         limit_info = "maksymalna wysokość MPKK = 45% całkowitej kwoty kredytu"
     elif choice == "3":
         st.info("**Wybrano wzór:**\nMPKK = (K × 25%) + (K × n/R × 30%)\nMaksymalna wysokość MPKK = całkowita kwota kredytu")
         limit_info = "maksymalna wysokość MPKK = całkowita kwota kredytu"
     elif choice == "4":
         st.info("""**Wybrano wzór:**  
-    - Dla okresu **krótszego niż 30 dni**: MPKK = K × 5%  
-    - Dla okresu **równego lub dłuższego niż 30 dni**: MPKK = (K × 10%) + (K × n/R × 10%)  
-    Maksymalna wysokość MPKK = 45% całkowitej kwoty kredytu""")
+- Dla okresu **krótszego niż 30 dni**: MPKK = K × 5%  
+- Dla okresu **równego lub dłuższego niż 30 dni**: MPKK = (K × 10%) + (K × n/R × 10%)  
+Maksymalna wysokość MPKK = 45% całkowitej kwoty kredytu""")
         limit_info = "maksymalna wysokość MPKK = 45% całkowitej kwoty kredytu"
-    
+
     if st.button("Oblicz MPKK"):
         is_short_term = n < 30
-    
+
         if choice in ["1", "3"]:
             mpkk_wzor = (K * 0.25) + (K * n / R * 0.30)
             formula = "MPKK = (K × 25%) + (K × n/R × 30%)"
@@ -298,35 +296,32 @@ if licz_mpk == "Tak":
                 mpkk_wzor = (K * 0.10) + (K * n / R * 0.10)
                 formula = "MPKK = (K × 10%) + (K × n/R × 10%) (dla okresu równego lub dłuższego niż 30 dni)"
             limit = K * 0.45
-    
+
         MPKK = min(mpkk_wzor, limit)
-    
+        st.session_state.MPKK = MPKK
+
         st.success(f"**Obliczona maksymalna wysokość pozaodsetkowych kosztów kredytu:** {format_pln(MPKK)} zł")
         st.write(f"**Użyty wzór:** {formula}")
         st.write(f"**Wynik MPKK według wzoru:** {format_pln(mpkk_wzor)} zł")
-    
+
         if mpkk_wzor > limit:
             st.warning(
                 f"MPKK według wzoru przekracza limit, {limit_info}. Limit wynosi: {format_pln(limit)} zł"
             )
         else:
             st.info("MPKK według wzoru mieści się w ustawowym limicie.")
-      
-        # --- Po obliczeniu MPKK: pytanie o rzeczywiste koszty ---
-        if st.session_state.get("MPKK"):
-            st.divider()
-            przekroczone = st.radio(
-                "Czy suma Twoich pozaodsetkowych kosztów kredytu (prowizje, ubezpieczenia, opłaty dodatkowe) przekracza obliczony limit MPKK?",
-                ["Nie", "Tak"],
-                key="rzeczywiste_koszty"
-            )
-            if przekroczone == "Tak":
-                st.warning("⚠️ Przekroczenie limitu MPKK może stanowić podstawę do zastosowania sankcji kredytu darmowego (SKD) zgodnie z art. 45 ust. 1 ustawy o kredycie konsumenckim.")
-            elif przekroczone == "Nie":
-                st.success("Twoje rzeczywiste pozaodsetkowe koszty kredytu mieszczą się w ustawowym limicie.")
 
-
-
+    # Pytanie o przekroczenie kosztów PO obliczeniach
+    if st.session_state.get('MPKK'):
+        st.divider()
+        przekroczone = st.radio(
+            "Czy suma Twoich rzeczywistych pozaodsetkowych kosztów przekracza obliczony limit?",
+            ["Nie", "Tak"],
+            key="mpkk_przekroczenie"
+        )
+        if przekroczone == "Tak":
+            naruszenia.append("Przekroczenie limitu MPKK (art. 5 ust. 1 ustawy o kredycie konsumenckim)")
+            st.error("❗ Przekroczenie limitu MPKK stanowi podstawę do zastosowania sankcji SKD")
 
 # --- Kalkulator RRSO ---
 st.header("Kalkulator RRSO", divider="gray")
@@ -337,33 +332,45 @@ licz_rrso = st.radio(
 )
 
 if licz_rrso == "Tak":
-    st.markdown("### 🔵 Harmonogram wypłat kredytu")
-    wyplaty = []
-    
-    with st.expander("Dodaj wypłaty kredytu"):
-        m = st.number_input("Liczba transz wypłat:", min_value=1, step=1, key="rrso_wyplaty")
+    def oblicz_rrso(wyplaty, splaty):
+        def funkcja(X):
+            lewa = sum(ck / (1 + X)**tk for ck, tk in wyplaty)
+            prawa = sum(dl / (1 + X)**sl for dl, sl in splaty)
+            return lewa - prawa
+
+        try:
+            wynik = newton(funkcja, 0.05, maxiter=1000)
+            return round(wynik * 100, 1)
+        except RuntimeError:
+            return None
+
+    # Sekcja wypłat
+    with st.expander("🗓️ Harmonogram wypłat kredytu"):
+        m = st.number_input("Liczba transz kredytu:", min_value=1, step=1, key="m_rrso")
+        wyplaty = []
         for i in range(int(m)):
             col1, col2 = st.columns(2)
             with col1:
-                ck = st.number_input(f"Kwota transzy {i+1} [zł]", key=f"rrso_ck_{i}", format="%.2f")
+                ck = st.number_input(f"Kwota transzy {i+1} [zł]", key=f"ck_{i}", format="%.2f")
             with col2:
                 tk = st.number_input(f"Okres od dziś do wypłaty {i+1} [lata]", 
-                                   min_value=0.0, step=0.01, key=f"rrso_tk_{i}", format="%.4f")
+                                   min_value=0.0, step=0.01, key=f"tk_{i}", format="%.4f")
             wyplaty.append((ck, tk))
 
-    st.markdown("### 🟡 Koszty dodatkowe")
-    with st.expander("Dodaj koszty"):
-        prowizja = st.number_input("Prowizja (jednorazowa) [zł]", min_value=0.0, step=0.01, key="rrso_prowizja")
-        oplata_przygotowawcza = st.number_input("Opłata przygotowawcza [zł]", min_value=0.0, step=0.01, key="rrso_oplata")
-        koszt_miesieczny = st.number_input("Koszt cykliczny (miesięcznie) [zł]", min_value=0.0, step=0.01, key="rrso_koszt")
+    # Sekcja kosztów
+    with st.expander("💸 Koszty dodatkowe"):
+        prowizja = st.number_input("Prowizja [zł]", min_value=0.0, step=0.01, key="prowizja_rrso")
+        oplata_przygotowawcza = st.number_input("Opłata przygotowawcza [zł]", min_value=0.0, step=0.01, key="op_przyg")
+        koszt_miesieczny = st.number_input("Koszty cykliczne (miesięczne) [zł]", min_value=0.0, step=0.01, key="koszt_cykliczny")
 
-    st.markdown("### 🟢 Harmonogram spłat")
-    splaty = []
-    
-    with st.expander("Dodaj spłaty"):
-        rata_stala = st.number_input("Wysokość stałej raty [zł]", min_value=0.0, step=0.01, key="rrso_rata")
-        liczba_rat = st.number_input("Liczba stałych rat", min_value=0, step=1, key="rrso_liczba_rat")
-        rata_ostatnia = st.number_input("Rata wyrównawcza [zł]", min_value=0.0, step=0.01, key="rrso_ostatnia")
+    # Sekcja spłat
+    with st.expander("📅 Harmonogram spłat"):
+        rata_stala = st.number_input("Wysokość stałej raty [zł]", min_value=0.0, step=0.01, key="rata_stala")
+        liczba_rat_stalych = st.number_input("Liczba stałych rat", min_value=0, step=1, key="l_rat")
+        rata_ostatnia = st.number_input("Rata wyrównawcza [zł]", min_value=0.0, step=0.01, key="rata_ost")
+
+    if st.button("Oblicz RRSO"):
+        splaty = []
 
         # Dodaj koszty natychmiastowe
         if prowizja > 0:
@@ -371,37 +378,35 @@ if licz_rrso == "Tak":
         if oplata_przygotowawcza > 0:
             splaty.append((oplata_przygotowawcza, 0.0))
 
-        # Generuj raty
-        for i in range(int(liczba_rat)):
+        # Generuj harmonogram spłat
+        for i in range(int(liczba_rat_stalych)):
             czas = (i + 1)/12  # konwersja miesięcy na lata
             splaty.append((rata_stala + koszt_miesieczny, czas))
         
         if rata_ostatnia > 0:
-            czas_ostatniej = (liczba_rat + 1)/12
+            czas_ostatniej = (liczba_rat_stalych + 1)/12
             splaty.append((rata_ostatnia + koszt_miesieczny, czas_ostatniej))
 
-    if st.button("Oblicz RRSO", key="rrso_oblicz"):
-        def funkcja_rrso(X):
-            lewa = sum(ck / (1 + X)**tk for ck, tk in wyplaty)
-            prawa = sum(dl / (1 + X)**sl for dl, sl in splaty)
-            return lewa - prawa
-
-        try:
-            rrso = round(newton(funkcja_rrso, 0.05) * 100, 1)
+        rrso = oblicz_rrso(wyplaty, splaty)
+        
+        if rrso:
             st.success(f"**Obliczone RRSO:** {rrso}%")
-            zgodnosc = st.radio(
-            "Czy RRSO podane w umowie zgadza się z obliczonym?",
+            st.session_state.rrso_obliczone = rrso
+        else:
+            st.error("Nie udało się obliczyć RRSO. Sprawdź poprawność danych!")
+
+    # Weryfikacja zgodności z umową
+    if st.session_state.get('rrso_obliczone'):
+        zgodnosc_rrso = st.radio(
+            "Czy RRSO podane w Twojej umowie zgadza się z obliczoną wartością?",
             ["Tak", "Nie"],
-            key="rrso_zgodnosc"
+            key="zgodnosc_rrso"
         )
-            if zgodnosc == "Nie":
-                st.warning("⚠️ Różnica między RRSO z umowy a obliczonym RRSO może stanowić podstawę do zastosowania sankcji kredytu darmowego (SKD) na podstawie art. 4 ust. 5 ustawy o kredycie konsumenckim.")
-    
-        except RuntimeError:
-            st.error("Nie udało się obliczyć RRSO. Sprawdź poprawność danych (m.in. czy suma spłat > suma wypłat).")
+        if zgodnosc_rrso == "Nie":
+            naruszenia.append("Rozbieżność między RRSO w umowie a rzeczywistymi obliczeniami")
+            st.error("❗ Niezgodność RRSO stanowi podstawę do zastosowania SKD (art. 4 ust. 5 ustawy o kredycie konsumenckim)")
 
-
-# --- Stopka CAŁY CZAS NA DOLE ---
+# --- Stopka ---
 st.markdown(
     """
     <div style="text-align:center; color:#888; font-size:0.95rem;">
