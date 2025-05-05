@@ -168,7 +168,7 @@ else:
     """)
 st.divider()
 
-# --- Kalkulator MPKK ---
+# --- Kalkulator MPKK: warunkowe wyświetlanie ---
 st.header("Kalkulator MPKK", divider="gray")
 licz_mpk = st.radio(
     "Czy chcesz policzyć maksymalne pozaodsetkowe koszty kredytu?",
@@ -178,6 +178,12 @@ licz_mpk = st.radio(
 
 if 'MPKK' not in st.session_state:
     st.session_state.MPKK = None
+if 'mpkk_formula' not in st.session_state:
+    st.session_state.mpkk_formula = None
+if 'mpkk_wzor' not in st.session_state:
+    st.session_state.mpkk_wzor = None
+if 'mpkk_limit_info' not in st.session_state:
+    st.session_state.mpkk_limit_info = None
 
 if licz_mpk == "Tak":
     st.header("Podaj kwotę kredytu", divider="gray")
@@ -299,29 +305,34 @@ Maksymalna wysokość MPKK = 45% całkowitej kwoty kredytu""")
 
         MPKK = min(mpkk_wzor, limit)
         st.session_state.MPKK = MPKK
+        st.session_state.mpkk_formula = formula
+        st.session_state.mpkk_wzor = mpkk_wzor
+        st.session_state.mpkk_limit_info = limit_info
 
-        st.success(f"**Obliczona maksymalna wysokość pozaodsetkowych kosztów kredytu:** {format_pln(MPKK)} zł")
-        st.write(f"**Użyty wzór:** {formula}")
-        st.write(f"**Wynik MPKK według wzoru:** {format_pln(mpkk_wzor)} zł")
-
-        if mpkk_wzor > limit:
+    # ZAWSZE pokazuj wynik, jeśli został policzony
+    if st.session_state.MPKK is not None:
+        st.success(f"**Obliczona maksymalna wysokość pozaodsetkowych kosztów kredytu:** {format_pln(st.session_state.MPKK)} zł")
+        st.write(f"**Użyty wzór:** {st.session_state.mpkk_formula}")
+        st.write(f"**Wynik MPKK według wzoru:** {format_pln(st.session_state.mpkk_wzor)} zł")
+        if st.session_state.mpkk_wzor > st.session_state.MPKK:
             st.warning(
-                f"MPKK według wzoru przekracza limit, {limit_info}. Limit wynosi: {format_pln(limit)} zł"
+                f"MPKK według wzoru przekracza limit, {st.session_state.mpkk_limit_info}."
             )
         else:
             st.info("MPKK według wzoru mieści się w ustawowym limicie.")
 
-    # Pytanie o przekroczenie kosztów PO obliczeniach
-    if st.session_state.get('MPKK'):
         st.divider()
         przekroczone = st.radio(
-            "Czy suma Twoich rzeczywistych pozaodsetkowych kosztów przekracza obliczony limit?",
+            "Czy suma Twoich rzeczywistych pozaodsetkowych kosztów kredytu przekracza obliczony limit MPKK?",
             ["Nie", "Tak"],
-            key="mpkk_przekroczenie"
+            key="rzeczywiste_koszty"
         )
         if przekroczone == "Tak":
-            naruszenia.append("Przekroczenie limitu MPKK (art. 5 ust. 1 ustawy o kredycie konsumenckim)")
-            st.error("❗ Przekroczenie limitu MPKK stanowi podstawę do zastosowania sankcji SKD")
+            st.warning("⚠️ Przekroczenie limitu MPKK może stanowić podstawę do zastosowania sankcji kredytu darmowego (SKD) zgodnie z art. 45 ust. 1 ustawy o kredycie konsumenckim.")
+        elif przekroczone == "Nie":
+            st.success("Twoje rzeczywiste pozaodsetkowe koszty kredytu mieszczą się w ustawowym limicie.")
+
+    st.divider()
 
 # --- Kalkulator RRSO ---
 st.header("Kalkulator RRSO", divider="gray")
@@ -331,46 +342,35 @@ licz_rrso = st.radio(
     key="licz_rrso"
 )
 
+if 'rrso' not in st.session_state:
+    st.session_state.rrso = None
+
 if licz_rrso == "Tak":
-    def oblicz_rrso(wyplaty, splaty):
-        def funkcja(X):
-            lewa = sum(ck / (1 + X)**tk for ck, tk in wyplaty)
-            prawa = sum(dl / (1 + X)**sl for dl, sl in splaty)
-            return lewa - prawa
-
-        try:
-            wynik = newton(funkcja, 0.05, maxiter=1000)
-            return round(wynik * 100, 1)
-        except RuntimeError:
-            return None
-
-    # Sekcja wypłat
-    with st.expander("🗓️ Harmonogram wypłat kredytu"):
-        m = st.number_input("Liczba transz kredytu:", min_value=1, step=1, key="m_rrso")
-        wyplaty = []
+    st.markdown("### 🔵 Harmonogram wypłat kredytu")
+    wyplaty = []
+    with st.expander("Dodaj wypłaty kredytu"):
+        m = st.number_input("Liczba transz wypłat:", min_value=1, step=1, key="rrso_wyplaty")
         for i in range(int(m)):
             col1, col2 = st.columns(2)
             with col1:
-                ck = st.number_input(f"Kwota transzy {i+1} [zł]", key=f"ck_{i}", format="%.2f")
+                ck = st.number_input(f"Kwota transzy {i+1} [zł]", key=f"rrso_ck_{i}", format="%.2f")
             with col2:
                 tk = st.number_input(f"Okres od dziś do wypłaty {i+1} [lata]", 
-                                   min_value=0.0, step=0.01, key=f"tk_{i}", format="%.4f")
+                                   min_value=0.0, step=0.01, key=f"rrso_tk_{i}", format="%.4f")
             wyplaty.append((ck, tk))
 
-    # Sekcja kosztów
-    with st.expander("💸 Koszty dodatkowe"):
-        prowizja = st.number_input("Prowizja [zł]", min_value=0.0, step=0.01, key="prowizja_rrso")
-        oplata_przygotowawcza = st.number_input("Opłata przygotowawcza [zł]", min_value=0.0, step=0.01, key="op_przyg")
-        koszt_miesieczny = st.number_input("Koszty cykliczne (miesięczne) [zł]", min_value=0.0, step=0.01, key="koszt_cykliczny")
+    st.markdown("### 🟡 Koszty dodatkowe")
+    with st.expander("Dodaj koszty"):
+        prowizja = st.number_input("Prowizja (jednorazowa) [zł]", min_value=0.0, step=0.01, key="rrso_prowizja")
+        oplata_przygotowawcza = st.number_input("Opłata przygotowawcza [zł]", min_value=0.0, step=0.01, key="rrso_oplata")
+        koszt_miesieczny = st.number_input("Koszt cykliczny (miesięcznie) [zł]", min_value=0.0, step=0.01, key="rrso_koszt")
 
-    # Sekcja spłat
-    with st.expander("📅 Harmonogram spłat"):
-        rata_stala = st.number_input("Wysokość stałej raty [zł]", min_value=0.0, step=0.01, key="rata_stala")
-        liczba_rat_stalych = st.number_input("Liczba stałych rat", min_value=0, step=1, key="l_rat")
-        rata_ostatnia = st.number_input("Rata wyrównawcza [zł]", min_value=0.0, step=0.01, key="rata_ost")
-
-    if st.button("Oblicz RRSO"):
-        splaty = []
+    st.markdown("### 🟢 Harmonogram spłat")
+    splaty = []
+    with st.expander("Dodaj spłaty"):
+        rata_stala = st.number_input("Wysokość stałej raty [zł]", min_value=0.0, step=0.01, key="rrso_rata")
+        liczba_rat = st.number_input("Liczba stałych rat", min_value=0, step=1, key="rrso_liczba_rat")
+        rata_ostatnia = st.number_input("Rata wyrównawcza [zł]", min_value=0.0, step=0.01, key="rrso_ostatnia")
 
         # Dodaj koszty natychmiastowe
         if prowizja > 0:
@@ -378,35 +378,49 @@ if licz_rrso == "Tak":
         if oplata_przygotowawcza > 0:
             splaty.append((oplata_przygotowawcza, 0.0))
 
-        # Generuj harmonogram spłat
-        for i in range(int(liczba_rat_stalych)):
+        # Generuj raty
+        for i in range(int(liczba_rat)):
             czas = (i + 1)/12  # konwersja miesięcy na lata
             splaty.append((rata_stala + koszt_miesieczny, czas))
         
         if rata_ostatnia > 0:
-            czas_ostatniej = (liczba_rat_stalych + 1)/12
+            czas_ostatniej = (liczba_rat + 1)/12
             splaty.append((rata_ostatnia + koszt_miesieczny, czas_ostatniej))
 
-        rrso = oblicz_rrso(wyplaty, splaty)
-        
-        if rrso:
-            st.success(f"**Obliczone RRSO:** {rrso}%")
-            st.session_state.rrso_obliczone = rrso
+    if st.button("Oblicz RRSO", key="rrso_oblicz"):
+        def funkcja_rrso(X):
+            lewa = sum(ck / (1 + X)**tk for ck, tk in wyplaty)
+            prawa = sum(dl / (1 + X)**sl for dl, sl in splaty)
+            return lewa - prawa
+
+        try:
+            wynik = newton(funkcja_rrso, 0.05, maxiter=1000)
+            rrso = round(wynik * 100, 1)
+            st.session_state.rrso = rrso
+        except RuntimeError:
+            st.session_state.rrso = "blad"
+
+    # ZAWSZE pokazuj wynik, jeśli został policzony
+    if st.session_state.rrso is not None:
+        if st.session_state.rrso == "blad":
+            st.error("Nie udało się obliczyć RRSO. Sprawdź poprawność danych (m.in. czy suma spłat > suma wypłat).")
         else:
-            st.error("Nie udało się obliczyć RRSO. Sprawdź poprawność danych!")
+            if st.session_state.rrso == 0.0:
+                st.success("**Obliczone RRSO:** 0% (to nie jest błąd, kredyt jest bezkosztowy lub idealnie zbilansowany)")
+            else:
+                st.success(f"**Obliczone RRSO:** {st.session_state.rrso}%")
 
-    # Weryfikacja zgodności z umową
-    if st.session_state.get('rrso_obliczone'):
-        zgodnosc_rrso = st.radio(
-            "Czy RRSO podane w Twojej umowie zgadza się z obliczoną wartością?",
-            ["Tak", "Nie"],
-            key="zgodnosc_rrso"
-        )
-        if zgodnosc_rrso == "Nie":
-            naruszenia.append("Rozbieżność między RRSO w umowie a rzeczywistymi obliczeniami")
-            st.error("❗ Niezgodność RRSO stanowi podstawę do zastosowania SKD (art. 4 ust. 5 ustawy o kredycie konsumenckim)")
+            zgodnosc = st.radio(
+                "Czy RRSO podane w umowie zgadza się z obliczonym?",
+                ["Tak", "Nie"],
+                key="rrso_zgodnosc"
+            )
+            if zgodnosc == "Nie":
+                st.warning("⚠️ Różnica między RRSO z umowy a obliczonym RRSO może stanowić podstawę do zastosowania sankcji kredytu darmowego (SKD) na podstawie art. 4 ust. 5 ustawy o kredycie konsumenckim.")
 
-# --- Stopka ---
+    st.divider()
+
+# --- Stopka CAŁY CZAS NA DOLE ---
 st.markdown(
     """
     <div style="text-align:center; color:#888; font-size:0.95rem;">
@@ -418,3 +432,4 @@ st.markdown(
     """, 
     unsafe_allow_html=True
 )
+
