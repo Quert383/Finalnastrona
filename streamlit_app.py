@@ -5,7 +5,7 @@ from scipy.optimize import newton
 
 # Konfiguracja strony
 st.set_page_config(
-    page_title="Kalkulator MPKK | Salutaris Polska",
+    page_title="Formularz SKD | Salutaris Polska",
     page_icon="Salutaris_logo.png",
     layout="centered"
 )
@@ -24,9 +24,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 st.markdown(
-    "<h1 style='margin-bottom:0.2em;'>Kwalifikacja do SKD wraz z kalkulatorem MPKK</h1>"
+    "<h1 style='margin-bottom:0.2em;'>Kwalifikacja do SKD wraz z kalkulatorem MPKK i RRSO</h1>"
     "<div style='color:#333; font-size:1.1rem; margin-bottom:1em;'>"
-    "Sprawdź czy Twój kredyt się kwalifikuje oraz oblicz maksymalne pozaodsetkowe koszty kredytu konsumenckiego według aktualnych przepisów."
+    "Sprawdź czy Twój kredyt kwalifikuje się do sankcji kredytu darmowego według aktualnych przepisów."
     "</div>",
     unsafe_allow_html=True
 )
@@ -395,7 +395,7 @@ if licz_rrso == "Tak":
 
         try:
             wynik = newton(funkcja_rrso, 0.05, maxiter=1000)
-            rrso = round(wynik * 100, 1)
+            rrso = round(wynik * 100, 2)
             st.session_state.rrso = rrso
         except RuntimeError:
             st.session_state.rrso = "blad"
@@ -408,7 +408,7 @@ if licz_rrso == "Tak":
             if st.session_state.rrso == 0.0:
                 st.success("**Obliczone RRSO:** 0% (to nie jest błąd, kredyt jest bezkosztowy lub idealnie zbilansowany)")
             else:
-                st.success(f"**Obliczone RRSO:** {st.session_state.rrso}%")
+                st.success(f"**Obliczone RRSO:** {st.session_state.rrso:.2f}%")
 
             zgodnosc = st.radio(
                 "Czy RRSO podane w umowie zgadza się z obliczonym?",
