@@ -312,20 +312,15 @@ if licz_mpk == "Tak":
         else:
             st.info("MPKK według wzoru mieści się w ustawowym limicie.")
       
-if st.session_state.get('MPKK'):
-    przekroczone = st.radio(
-        "Czy suma Twoich rzeczywistych pozaodsetkowych kosztów kredytu (prowizje, ubezpieczenia, opłaty dodatkowe) przekracza obliczony limit MPKK?",
-        ["Nie", "Tak"],
-        key="rzeczywiste_koszty"
-    )
-    if przekroczone == "Tak":
-        naruszenia.append("Przekroczenie limitu MPKK")
-        st.error("""
-        ❗ Rzeczywiste koszty przekraczają maksymalny dopuszczalny limit MPKK - stanowi to podstawę do zastosowania sankcji SKD 
-        zgodnie z art. 45 ust. 1 ustawy o kredycie konsumenckim.
-        """)
-    elif przekroczone == "Nie":
-        st.success("Twoje rzeczywiste pozaodsetkowe koszty kredytu mieszczą się w ustawowym limicie.")
+st.divider()
+        przekroczone = st.radio(
+            "Czy suma Twoich rzeczywistych pozaodsetkowych kosztów kredytu przekracza obliczony limit MPKK?",
+            ["Nie", "Tak"],
+            key="rzeczywiste_koszty"
+        )
+        if przekroczone == "Tak":
+            naruszenia.append("Przekroczenie limitu MPKK (art. 5 ust. 1 ustawy o kredycie konsumenckim)")
+            st.error("Przekroczenie limitu MPKK stanowi podstawę do zastosowania sankcji SKD")
 
 
 
